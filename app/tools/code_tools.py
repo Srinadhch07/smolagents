@@ -15,15 +15,13 @@ def directory_exists(path: str) -> str:
     Returns:
         True or False.
     """
-
-    import os
-
     return str(os.path.isdir(path))
+
 
 @tool
 def list_files_recursive(directory: str = ".") -> str:
     """
-    Lists files recursively.
+    Lists files recursively, ignoring .git, .venv, __pycache__.
 
     Args:
         directory: Directory to scan.
@@ -31,30 +29,16 @@ def list_files_recursive(directory: str = ".") -> str:
     Returns:
         Newline-separated file list.
     """
-
-    import os
-
-    ignored = {
-        ".git",
-        ".venv",
-        "__pycache__"
-    }
-
+    ignored = {".git", ".venv", "__pycache__"}
     collected = []
 
     for root, dirs, files in os.walk(directory):
-
-        dirs[:] = [
-            d for d in dirs
-            if d not in ignored
-        ]
-
+        dirs[:] = [d for d in dirs if d not in ignored]
         for file in files:
-            collected.append(
-                os.path.join(root, file)
-            )
+            collected.append(os.path.join(root, file))
 
-    return "\n".join(collected)
+    return "\n".join(collected) if collected else "No files found."
+
 
 @tool
 def get_current_directory() -> str:
@@ -67,10 +51,8 @@ def get_current_directory() -> str:
     Returns:
         Current working directory path.
     """
-
-    import os
-
     return os.getcwd()
+
 
 @tool
 def create_directory(path: str) -> str:
@@ -83,15 +65,14 @@ def create_directory(path: str) -> str:
     Returns:
         Success message.
     """
-
     os.makedirs(path, exist_ok=True)
-
     return f"Directory '{path}' created successfully."
+
 
 @tool
 def write_text_file(filepath: str, content: str) -> str:
     """
-    Writes content into a text file.
+    Writes content into a text file, creating parent directories if needed.
 
     Args:
         filepath: Path of the file to create or overwrite.
@@ -100,9 +81,7 @@ def write_text_file(filepath: str, content: str) -> str:
     Returns:
         Success message.
     """
-
     parent_dir = os.path.dirname(filepath)
-
     if parent_dir:
         os.makedirs(parent_dir, exist_ok=True)
 
@@ -111,10 +90,11 @@ def write_text_file(filepath: str, content: str) -> str:
 
     return f"File '{filepath}' written successfully."
 
+
 @tool
 def append_text_file(filepath: str, content: str) -> str:
     """
-    Appends content into a text file.
+    Appends content into a text file, creating parent directories if needed.
 
     Args:
         filepath: File path to append content into.
@@ -123,9 +103,7 @@ def append_text_file(filepath: str, content: str) -> str:
     Returns:
         Success message.
     """
-
     parent_dir = os.path.dirname(filepath)
-
     if parent_dir:
         os.makedirs(parent_dir, exist_ok=True)
 
@@ -138,14 +116,16 @@ def append_text_file(filepath: str, content: str) -> str:
 @tool
 def read_text_file(filepath: str) -> str:
     """
-    Reads a text file.
+    Reads a text file and returns its contents.
 
     Args:
         filepath: File path to read.
 
     Returns:
-        File contents.
+        File contents as string.
     """
+    if not os.path.exists(filepath):
+        return f"Error: File '{filepath}' does not exist."
 
     with open(filepath, "r", encoding="utf-8") as f:
         return f.read()
@@ -162,9 +142,10 @@ def delete_file(filepath: str) -> str:
     Returns:
         Success message.
     """
+    if not os.path.exists(filepath):
+        return f"Error: File '{filepath}' does not exist."
 
     os.remove(filepath)
-
     return f"File '{filepath}' deleted successfully."
 
 
@@ -179,14 +160,15 @@ def list_files(directory: str = ".") -> str:
     Returns:
         Newline-separated file list.
     """
+    if not os.path.isdir(directory):
+        return f"Error: Directory '{directory}' does not exist."
 
     collected = []
-
     for root, _, files in os.walk(directory):
         for file in files:
             collected.append(os.path.join(root, file))
 
-    return "\n".join(collected)
+    return "\n".join(collected) if collected else "No files found."
 
 
 @tool
@@ -198,45 +180,41 @@ def file_exists(filepath: str) -> str:
         filepath: File path to check.
 
     Returns:
-        Existence status.
+        'True' or 'False'.
     """
-
     return str(os.path.exists(filepath))
 
 
 @tool
 def search_in_files(directory: str, keyword: str) -> str:
     """
-    Searches for a keyword inside files.
+    Searches for a keyword inside all text files in a directory.
 
     Args:
-        directory: Directory to search.
-        keyword: Keyword to search for.
+        directory: Directory to search in.
+        keyword: Keyword to search for (case-insensitive).
 
     Returns:
-        Matching file paths and lines.
+        Matching file paths and lines, up to 200 results.
     """
+    if not os.path.isdir(directory):
+        return f"Error: Directory '{directory}' does not exist."
 
     matches = []
 
     for root, _, files in os.walk(directory):
-
         for file in files:
-
             path = os.path.join(root, file)
-
             try:
                 with open(path, "r", encoding="utf-8") as f:
-
                     for idx, line in enumerate(f.readlines()):
-
                         if keyword.lower() in line.lower():
-                            matches.append(
-                                f"{path}:{idx+1}: {line.strip()}"
-                            )
-
-            except:
+                            matches.append(f"{path}:{idx+1}: {line.strip()}")
+            except Exception:
                 pass
+
+    if not matches:
+        return f"No matches found for '{keyword}' in '{directory}'."
 
     return "\n".join(matches[:200])
 
@@ -244,41 +222,40 @@ def search_in_files(directory: str, keyword: str) -> str:
 @tool
 def run_python_file(filepath: str) -> str:
     """
-    Executes a Python file.
+    Executes a Python file and returns stdout and stderr.
 
     Args:
         filepath: Python file path to execute.
 
     Returns:
-        Standard output and standard error.
+        STDOUT and STDERR combined output.
     """
+    if not os.path.exists(filepath):
+        return f"Error: File '{filepath}' does not exist."
 
     result = subprocess.run(
         ["python", filepath],
         capture_output=True,
-        text=True
+        text=True,
+        timeout=60
     )
 
-    return f"""
-STDOUT:
-{result.stdout}
-
-STDERR:
-{result.stderr}
-"""
+    return f"STDOUT:\n{result.stdout}\n\nSTDERR:\n{result.stderr}"
 
 
 @tool
 def validate_python_syntax(filepath: str) -> str:
     """
-    Validates Python syntax.
+    Validates Python syntax of a file without executing it.
 
     Args:
         filepath: Python file path to validate.
 
     Returns:
-        Validation result.
+        'Syntax valid.' or error details.
     """
+    if not os.path.exists(filepath):
+        return f"Error: File '{filepath}' does not exist."
 
     result = subprocess.run(
         ["python", "-m", "py_compile", filepath],
@@ -289,46 +266,32 @@ def validate_python_syntax(filepath: str) -> str:
     if result.returncode == 0:
         return "Syntax valid."
 
-    return result.stderr
+    return f"Syntax error:\n{result.stderr}"
 
 
 @tool
 def run_shell_command(command: str) -> str:
     """
-    Runs safe shell commands.
+    Runs a safe, read-only shell command from an allowlist.
 
     Args:
-        command: Shell command to execute.
+        command: Shell command to execute. Allowed: ls, pwd, whoami, tree, cat, echo, find, head, tail, wc.
 
     Returns:
-        Command output.
+        Command STDOUT and STDERR, or an error if command is not allowed.
     """
-
-    allowed = [
-        "dir",
-        "ls",
-        "pwd",
-        "whoami",
-        "tree",
-        "type"
-    ]
-
-    first = command.split()[0]
+    allowed = ["ls", "pwd", "whoami", "tree", "cat", "echo", "find", "head", "tail", "wc"]
+    first = command.strip().split()[0]
 
     if first not in allowed:
-        return "Command not allowed."
+        return f"Command '{first}' not allowed. Allowed commands: {', '.join(allowed)}"
 
     result = subprocess.run(
         command,
         shell=True,
         capture_output=True,
-        text=True
+        text=True,
+        timeout=30
     )
 
-    return f"""
-STDOUT:
-{result.stdout}
-
-STDERR:
-{result.stderr}
-"""
+    return f"STDOUT:\n{result.stdout}\n\nSTDERR:\n{result.stderr}"
