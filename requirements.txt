@@ -1,0 +1,10 @@
+python-dotenv
+requests
+smolagents
+litellm #supoorts mutli platforms
+ddgs #duckduckgosearchengine
+
+# Doc generation
+python-docx 
+reportlab 
+markdown
